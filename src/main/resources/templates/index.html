@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Land Route Calculator</title>
+</head>
+<body onload="populate()">
+<script>
+function populate() {
+  var url = "http://127.0.0.1:8080/countries";
+  var xhr = new XMLHttpRequest();
+  xhr.open("GET", url);
+  xhr.setRequestHeader("Accept", "application/json");
+  xhr.onreadystatechange = function () {
+    if (xhr.readyState === 4 && xhr.status === 200) {
+      originBox = document.getElementById('origin');
+      destinatioBox = document.getElementById('destination');
+      var tuples = JSON.parse(xhr.responseText);
+      for (var i=0 ; i < tuples.length ; i++) {
+        var tupleItems = tuples[i].split(',');
+        var label = tupleItems[0].trim();
+        var model = tupleItems[2].trim();
+        originBox.options.add(new Option(label, model));
+        destinatioBox.options.add(new Option(label, model));
+      }
+    }
+  };
+  xhr.send();
+}
+
+function calculateRoute() {
+  originId = document.getElementById('origin').value.toLowerCase();
+  destinationId = document.getElementById('destination').value.toLowerCase();
+  
+  statusDiv = document.getElementById('status');
+  statusDiv.innerHTML = "&nbsp;";
+  
+  routePlanDiv = document.getElementById('routePlan');
+  while (routePlanDiv.firstChild) {
+    routePlanDiv.removeChild(routePlanDiv.firstChild);
+  }
+
+  var url = "http://127.0.0.1:8080/routing/" + originId + "/" + destinationId;
+  var xhr = new XMLHttpRequest();
+  xhr.open("GET", url);
+  xhr.setRequestHeader("Accept", "application/json");
+  xhr.onreadystatechange = function () {
+    if (xhr.readyState === 4 && xhr.status === 200) {
+	  statusDiv.innerHTML = "Route from origin to destination is:";
+      var result = JSON.parse(xhr.responseText);     
+  	  result.route.forEach(function(item) {
+        if (Array.isArray(item)) {
+          arrToUl(li, item);
+          return;
+        }
+
+        li = document.createElement('li');
+        li.appendChild(document.createTextNode(item));
+        routePlanDiv.appendChild(li);
+      });
+    } else if (xhr.readyState === 4 && xhr.status === 400) {
+	  statusDiv.innerHTML = xhr.responseText;
+	} else if (xhr.readyState === 4) {
+	  statusDiv.innerHTML = "Unknown error!";
+	}
+  };
+  xhr.send();
+}
+</script>
+<h1>Land Route Calculator</h1>
+<p>Select origin and destination:</p>
+<div>
+  <label for="origin">Origin:</label>
+  <select id="origin">
+  </select>
+  <label for="destination">Destination:</label>
+  <select id="destination">
+  </select>
+  <button onClick="calculateRoute()">Calculate</button>
+</div>
+<br>
+<p>
+<div id="status"></div>
+</p>
+<ul id="routePlan">
+</ul>
+</body>
+</html>
